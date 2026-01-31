@@ -22,20 +22,22 @@ const MobileStoryContainer: React.FC<MobileStoryContainerProps> = ({ children })
     }
   };
 
+  const prevSlide = () => {
+      if (scrollRef.current) {
+          scrollRef.current.scrollBy({ left: -scrollRef.current.clientWidth, behavior: 'smooth' });
+      }
+  };
+
   return (
     <div className="flex flex-col w-full relative group h-[100dvh]">
-      {/* Story Progress Bars */}
       <div className="flex gap-1.5 mb-2 pt-2 px-2 shrink-0 z-20">
         {children.map((_, idx) => (
           <div key={idx} className="h-1 rounded-full flex-1 bg-zinc-800 overflow-hidden">
-             <div 
-               className={`h-full bg-white transition-all duration-300 ${idx === currentIndex ? 'w-full' : idx < currentIndex ? 'w-full opacity-30' : 'w-0'}`}
-             />
+             <div className={`h-full bg-white transition-all duration-300 ${idx === currentIndex ? 'w-full' : idx < currentIndex ? 'w-full opacity-30' : 'w-0'}`} />
           </div>
         ))}
       </div>
       
-      {/* Scroll Snap Container */}
       <div 
         ref={scrollRef}
         onScroll={handleScroll}
@@ -44,21 +46,26 @@ const MobileStoryContainer: React.FC<MobileStoryContainerProps> = ({ children })
       >
         {children.map((child, idx) => (
           <div key={idx} className="w-full flex-shrink-0 snap-center flex flex-col h-full overflow-hidden relative p-4 pb-20">
-             {/* Slide Content Wrapper - Centered */}
-             <div className="flex-1 flex flex-col justify-center">
-                {child}
-             </div>
+             <div className="flex-1 flex flex-col justify-center">{child}</div>
           </div>
         ))}
       </div>
       
-      {/* Hint / Next Button Overlay */}
+      {currentIndex > 0 && (
+         <button 
+            onClick={prevSlide}
+            className="absolute bottom-6 left-4 z-50 bg-zinc-800/80 backdrop-blur-md border border-white/20 px-8 py-3 rounded-full text-white font-bold text-sm shadow-xl transition-transform active:scale-95"
+         >
+            Back
+         </button>
+      )}
+
       {currentIndex < children.length - 1 && (
          <button 
             onClick={nextSlide}
-            className="absolute bottom-6 right-4 z-50 bg-black/60 backdrop-blur-md border border-white/20 px-6 py-3 rounded-full text-white font-bold text-sm shadow-xl animate-pulse active:scale-95 transition-transform flex items-center gap-2"
+            className="absolute bottom-6 right-4 z-50 bg-zinc-800/80 backdrop-blur-md border border-white/20 px-8 py-3 rounded-full text-white font-bold text-sm shadow-xl transition-transform active:scale-95"
          >
-            Next ➡️
+            Next
          </button>
       )}
     </div>

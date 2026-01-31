@@ -5,26 +5,47 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RupeeRewind - India Salary Inflation Calculator</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            animation: {
+              'marquee-x': 'marquee-x 90s linear infinite',
+              'marquee-y': 'marquee-y 90s linear infinite',
+            },
+            keyframes: {
+              'marquee-x': {
+                '0%': { transform: 'translateX(0%)' },
+                '100%': { transform: 'translateX(-50%)' },
+              },
+              'marquee-y': {
+                '0%': { transform: 'translateY(0%)' },
+                '100%': { transform: 'translateY(-50%)' },
+              }
+            }
+          }
+        }
+      }
+    </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
       body {
         font-family: 'Inter', sans-serif;
-        background-color: #000000; /* Pure Black */
-        color: #f5f5f7; /* Apple Off-white */
       }
       /* Custom scrollbar for better aesthetics */
       ::-webkit-scrollbar {
         width: 8px;
       }
       ::-webkit-scrollbar-track {
-        background: #000000; 
+        background: transparent; 
       }
       ::-webkit-scrollbar-thumb {
-        background: #333333; 
+        background: #52525b; 
         border-radius: 4px;
       }
       ::-webkit-scrollbar-thumb:hover {
-        background: #444444; 
+        background: #71717a; 
       }
     </style>
   <script type="importmap">
@@ -40,7 +61,7 @@
 }
 </script>
 </head>
-  <body>
+  <body class="bg-gray-50 dark:bg-black transition-colors duration-300">
     <div id="root"></div>
   </body>
 </html>

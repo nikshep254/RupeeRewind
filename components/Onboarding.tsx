@@ -20,7 +20,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     {
       type: "input",
       title: "Woof! Hi there!",
-      description: "I'm Zazzy, Nikshep's pet! I'll be your guide today! RupeeRewind is the smartest way to see what your money is really worth. First, what should I call you?",
+      description: "I'm Zazzy! I'll be your guide today! RupeeRewind is the smartest way to see what your money is really worth. First, what should I call you?",
       icon: <ZazzyPuppy mood="excited" className="w-24 h-24" />
     },
     {
@@ -88,13 +88,13 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   ];
 
   const handleNext = () => {
-    if (step === 0 && !name.trim()) return; // Prevent empty name
+    if (step === 0 && !name.trim()) return; 
     
     if (step < steps.length - 1) {
       setStep(step + 1);
     } else {
       setIsVisible(false);
-      setTimeout(() => onComplete(name), 300); // Allow fade out
+      setTimeout(() => onComplete(name), 300); 
     }
   };
 
@@ -106,20 +106,19 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 
   return (
     <div className={`fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
-      {/* Brighter Card: lighter background, higher opacity border, subtle white shadow */}
-      <div className="bg-[#1c1c1e] border border-white/20 w-full max-w-lg rounded-[2rem] shadow-[0_0_40px_rgba(255,255,255,0.08)] p-8 relative overflow-hidden flex flex-col min-h-[550px]">
+      <div className="bg-[#151516] border border-white/10 w-full max-w-lg rounded-[2rem] shadow-2xl p-8 relative overflow-hidden flex flex-col min-h-[550px]">
         {/* Playful Background Gradients */}
         <div className="absolute top-[-20%] right-[-20%] w-64 h-64 bg-amber-500/10 rounded-full blur-3xl animate-pulse"></div>
         <div className="absolute bottom-[-20%] left-[-20%] w-64 h-64 bg-orange-500/10 rounded-full blur-3xl"></div>
 
-        <div className="flex-1 flex flex-col items-center justify-center text-center z-10 animate-fadeIn">
+        <div className="flex-1 flex flex-col items-center justify-center text-center z-10 animate-fadeIn w-full">
           <div className="mb-6 p-4 transform transition-transform hover:scale-110 duration-300">
             {currentStep.icon}
           </div>
-          <h2 className="text-3xl sm:text-4xl font-black text-white mb-6 tracking-tight leading-tight drop-shadow-lg">{currentStep.title}</h2>
+          <h2 className="text-3xl sm:text-4xl font-black text-white mb-6 tracking-tight leading-tight">{currentStep.title}</h2>
           
           {currentStep.type === 'input' ? (
-             <div className="w-full max-w-xs">
+             <div className="w-full max-w-xs animate-slideIn">
                 <input 
                   type="text" 
                   value={name}
@@ -127,14 +126,12 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                   onKeyDown={handleKeyDown}
                   placeholder="Enter your name"
                   autoFocus
-                  className="w-full bg-zinc-800 border border-zinc-600 text-white px-6 py-4 rounded-xl text-center focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 placeholder-zinc-500 font-bold text-xl shadow-inner"
+                  className="w-full bg-zinc-800 border border-zinc-600 text-white px-6 py-4 rounded-xl text-center focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 placeholder-zinc-500 font-bold text-xl"
                 />
-                 {/* Brighter Description Text */}
-                 <p className="text-zinc-200 text-base mt-6 leading-relaxed font-medium">{currentStep.description}</p>
+                 <p className="text-zinc-400 text-sm mt-6 leading-relaxed">{currentStep.description}</p>
              </div>
           ) : (
-             /* Brighter Description Text */
-             <p className="text-zinc-200 text-lg leading-relaxed max-w-sm font-medium drop-shadow-sm">{currentStep.description}</p>
+             <p className="text-zinc-400 text-base leading-relaxed max-w-sm">{currentStep.description}</p>
           )}
         </div>
 
@@ -143,20 +140,20 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
             {steps.map((_, i) => (
               <div 
                 key={i} 
-                className={`h-2 rounded-full transition-all duration-300 ${i === step ? 'w-8 bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]' : 'w-2 bg-zinc-700'}`}
+                className={`h-1.5 rounded-full transition-all duration-300 ${i === step ? 'w-8 bg-white' : 'w-1.5 bg-zinc-800'}`}
               />
             ))}
           </div>
           <button 
             onClick={handleNext}
             disabled={step === 0 && !name.trim()}
-            className={`px-8 py-3.5 text-base font-bold rounded-full transition-all transform hover:scale-105 active:scale-95 shadow-xl ${
+            className={`px-8 py-3 text-sm font-bold rounded-full transition-all transform active:scale-95 ${
                 step === 0 && !name.trim() 
                 ? 'bg-zinc-800 text-zinc-600 cursor-not-allowed' 
-                : 'bg-zinc-800 text-white border border-white/20 hover:bg-zinc-700'
+                : 'bg-white text-black hover:bg-zinc-200 shadow-[0_0_15px_rgba(255,255,255,0.3)]'
             }`}
           >
-            {step === steps.length - 1 ? "Let's Go! 🚀" : "Next ➡️"}
+            {step === steps.length - 1 ? "Let's Go!" : "Next"}
           </button>
         </div>
       </div>

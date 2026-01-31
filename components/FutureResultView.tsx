@@ -1,17 +1,15 @@
 
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { FuturePredictionResult, ChartDataPoint, AIAnalysisState } from '../types';
-import InfoTooltip from './InfoTooltip';
+import { FuturePredictionResult, ChartDataPoint } from '../types';
 import MobileStoryContainer from './MobileStoryContainer';
-import AIAnalysis from './AIAnalysis';
+import AnimatedCounter from './AnimatedCounter'; 
+import AboutCard from './AboutCard';
+import GuidePopup from './GuidePopup';
 
 interface FutureResultViewProps {
   result: FuturePredictionResult;
   chartData: ChartDataPoint[];
-  aiState: AIAnalysisState;
-  aiText: string;
-  onGenerateAI: () => void;
 }
 
 const CustomTooltip = ({ active, payload, label }: any) => {
@@ -22,14 +20,14 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
     return (
       <div className="bg-[#1c1c1e] border border-zinc-800 p-4 rounded-xl shadow-2xl min-w-[200px]">
-        <p className="text-zinc-400 text-xs uppercase font-bold mb-3 tracking-wider drop-shadow-[0_0_5px_rgba(255,255,255,0.2)]">{label}</p>
+        <p className="text-zinc-300 text-xs uppercase font-bold mb-3 tracking-wider drop-shadow-[0_0_5px_rgba(255,255,255,0.2)]">{label}</p>
         <div className="space-y-3">
           {payload.map((entry: any, index: number) => (
             <div key={index} className="flex flex-col">
               <div className="flex items-center justify-between gap-4">
                  <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
-                    <span className="text-sm text-zinc-300">{entry.name}</span>
+                    <span className="text-sm text-zinc-200">{entry.name}</span>
                  </div>
                  <span className="text-sm font-semibold text-white tabular-nums">
                     {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(entry.value)}
@@ -40,7 +38,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
           {nominal > 0 && real > 0 && (
             <div className="pt-2 mt-2 border-t border-white/5">
                 <div className="flex justify-between items-center text-xs">
-                    <span className="text-zinc-400">Inflation Loss</span>
+                    <span className="text-zinc-300">Inflation Loss</span>
                     <span className="text-red-400 font-medium">
                         -{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(gap)}
                     </span>
@@ -54,9 +52,43 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
-const FutureResultView: React.FC<FutureResultViewProps> = ({ result, chartData, aiState, aiText, onGenerateAI }) => {
+const FutureResultView: React.FC<FutureResultViewProps> = ({ result, chartData }) => {
+  const [shockMode, setShockMode] = useState(false);
+  const [showShockGuide, setShowShockGuide] = useState(false);
+  
   const currentYear = new Date().getFullYear();
   const futureYear = currentYear + result.years;
+
+  const inflationRateUsed = shockMode ? 12.0 : result.projectedInflationRate;
+
+  useEffect(() => {
+    // Show the guide popup after a short delay to ensure user sees the interface first
+    const timer = setTimeout(() => {
+        setShowShockGuide(true);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const toggleShockMode = () => {
+      setShockMode(!shockMode);
+      if (showShockGuide) {
+          setShowShockGuide(false);
+      }
+  };
+
+  // Recalculate basic metrics for Shock Mode display
+  const futureRealAmountShock = Math.round(result.futureNominalAmount / Math.pow(1 + inflationRateUsed / 100, result.years));
+  const goalFutureShock = result.goalComparison.costToday * Math.pow(1 + inflationRateUsed / 100, result.years);
+  
+  const displayRealAmount = shockMode ? futureRealAmountShock : result.futureRealAmount;
+  const displayGoalFuture = shockMode ? Math.round(goalFutureShock) : result.goalComparison.costFuture;
+
+  // Recalculate Chart Data for Shock Mode
+  const displayChartData = shockMode ? chartData.map(pt => ({
+      ...pt,
+      value2: Math.round(pt.value / Math.pow(1 + inflationRateUsed / 100, pt.year - currentYear))
+  })) : chartData;
+
 
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -72,32 +104,41 @@ const FutureResultView: React.FC<FutureResultViewProps> = ({ result, chartData, 
       return formatCurrency(val);
   };
 
-  const isWinning = result.futureRealAmount > result.currentAmount;
-  const realGrowthPercentage = ((result.futureRealAmount - result.currentAmount) / result.currentAmount) * 100;
-  const goalGap = result.goalComparison.costFuture - result.goalComparison.costToday;
+  const isWinning = displayRealAmount > result.currentAmount;
+  const realGrowthPercentage = ((displayRealAmount - result.currentAmount) / result.currentAmount) * 100;
+  const goalGap = displayGoalFuture - result.goalComparison.costToday;
 
   // Shared Styles
-  const labelClass = "text-zinc-400 text-xs uppercase tracking-widest font-bold drop-shadow-[0_0_8px_rgba(255,255,255,0.15)]";
-  const subLabelClass = "text-zinc-400 text-xs uppercase tracking-wider mb-2 drop-shadow-[0_0_5px_rgba(255,255,255,0.1)]";
+  const labelClass = "text-zinc-300 text-xs uppercase tracking-widest font-bold drop-shadow-[0_0_8px_rgba(255,255,255,0.15)]";
+  const subLabelClass = "text-zinc-400 text-[14px] font-medium uppercase tracking-wider mb-2 drop-shadow-[0_0_5px_rgba(255,255,255,0.1)]";
 
   // --- COMPONENT BLOCKS FOR REUSE ---
 
   const MainProjectionCard = (
-      <div className="bg-[#151516] border border-white/10 rounded-3xl p-8 relative overflow-hidden w-full group">
+      <div className={`bg-[#151516] border transition-all duration-500 rounded-3xl p-8 relative overflow-hidden w-full group ${shockMode ? 'border-red-500/50 shadow-[0_0_30px_rgba(220,38,38,0.2)]' : 'border-white/10'}`}>
         {/* Backdrop Emoji - Left */}
         <div className="absolute -left-8 -bottom-10 text-[10rem] opacity-5 grayscale pointer-events-none select-none group-hover:scale-110 transition-transform duration-700">
-            📈
+            {shockMode ? '😱' : '📈'}
         </div>
 
-        <h3 className={labelClass + " mb-3 relative z-10"}>
-          Projected Monthly Income (Nominal)
-        </h3>
+        <div className="flex justify-between items-start mb-3 relative z-10">
+             <h3 className={labelClass}>
+                Projected Monthly Income (Nominal)
+             </h3>
+             <button 
+                onClick={toggleShockMode}
+                className={`text-[14px] font-bold px-3 py-1.5 rounded-full uppercase tracking-wider transition-all cursor-pointer z-50 ${shockMode ? 'bg-red-600 text-white animate-pulse' : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'}`}
+             >
+                {shockMode ? '⚡ Shock Mode ON' : '⚠️ Test Shock'}
+             </button>
+        </div>
+
         <div className="flex items-baseline gap-2 mb-2 relative z-10">
           <span className="text-5xl sm:text-6xl font-black text-white tracking-tight drop-shadow-2xl">
-            {formatCurrency(result.futureNominalAmount)}
+            <AnimatedCounter value={result.futureNominalAmount} formatFn={formatCurrency} />
           </span>
         </div>
-        <p className="text-zinc-400 text-base mb-8 relative z-10">
+        <p className="text-zinc-200 text-base mb-8 relative z-10">
           The number on your paycheck in {futureYear}.
         </p>
         
@@ -105,16 +146,16 @@ const FutureResultView: React.FC<FutureResultViewProps> = ({ result, chartData, 
           <div>
             <span className={`block ${subLabelClass}`}>Real Value (Today's Terms)</span>
             <span className={`text-2xl font-bold ${isWinning ? 'text-emerald-400' : 'text-red-400'} drop-shadow-lg`}>
-              {formatCurrency(result.futureRealAmount)}
+              <AnimatedCounter value={displayRealAmount} formatFn={formatCurrency} />
             </span>
-            <p className="text-xs text-zinc-500 mt-1">Adjusted for {result.projectedInflationRate}% inflation</p>
+            <p className="text-xs text-zinc-300 mt-1">Adjusted for <span className={shockMode ? 'text-red-500 font-bold' : ''}>{inflationRateUsed}%</span> inflation</p>
           </div>
           <div>
             <span className={`block ${subLabelClass}`}>Effective Real Growth</span>
              <span className={`text-2xl font-bold ${realGrowthPercentage >= 0 ? 'text-emerald-400' : 'text-red-400'} drop-shadow-lg`}>
                {realGrowthPercentage > 0 ? '+' : ''}{realGrowthPercentage.toFixed(1)}%
             </span>
-             <p className="text-xs text-zinc-500 mt-1">
+             <p className="text-xs text-zinc-300 mt-1">
                {realGrowthPercentage < 0 
                 ? "You are effectively losing money." 
                 : "You are beating inflation."}
@@ -123,6 +164,38 @@ const FutureResultView: React.FC<FutureResultViewProps> = ({ result, chartData, 
         </div>
       </div>
   );
+
+  const IllusionCard = () => {
+      const croreToday = 10000000;
+      // Reverse calculate: what 1 crore in future is worth today
+      const realValueCrore = croreToday / Math.pow(1 + inflationRateUsed / 100, result.years);
+      
+      return (
+        <div className="bg-[#1c1c1e] border border-amber-500/20 rounded-3xl p-8 relative overflow-hidden w-full group">
+             <div className="absolute -right-6 -top-6 text-[8rem] opacity-5 grayscale pointer-events-none select-none">🏆</div>
+             
+             <h3 className="text-amber-400 text-xs font-bold uppercase tracking-widest mb-1 drop-shadow-[0_0_8px_rgba(251,191,36,0.3)]">The "1 Crore" Illusion</h3>
+             <p className={subLabelClass + " mb-6"}>Why becoming a 'Crorepati' won't feel special</p>
+
+             <div className="grid grid-cols-2 gap-4">
+                 <div>
+                     <p className="text-zinc-300 text-[10px] uppercase font-bold mb-1">Having ₹1 Crore in {futureYear}</p>
+                     <p className="text-zinc-400 text-xs">Is purchasing power equivalent to having only...</p>
+                 </div>
+                 <div className="text-right">
+                     <p className="text-3xl font-black text-white"><AnimatedCounter value={realValueCrore} formatFn={formatCompact}/></p>
+                     <p className="text-xs text-zinc-300 mt-1">today.</p>
+                 </div>
+             </div>
+             
+             <div className="mt-4 pt-4 border-t border-white/5">
+                 <p className="text-xs text-zinc-300 text-center italic">
+                     To feel like a millionaire of today, you'll need <span className="text-amber-400 font-bold">{formatCompact(croreToday * Math.pow(1 + inflationRateUsed / 100, result.years))}</span> in {futureYear}.
+                 </p>
+             </div>
+        </div>
+      );
+  };
 
   const DreamGoalCard = (
       <div className="bg-[#1c1c1e] border border-purple-500/20 rounded-3xl p-8 relative overflow-hidden w-full group">
@@ -141,19 +214,21 @@ const FutureResultView: React.FC<FutureResultViewProps> = ({ result, chartData, 
          
          <div className="flex justify-between items-center mb-4 relative z-10">
              <div>
-                 <p className="text-zinc-400 text-xs font-medium mb-1">Cost Today</p>
-                 <p className="text-xl font-bold text-zinc-300">{formatCompact(result.goalComparison.costToday)}</p>
+                 <p className="text-zinc-300 text-xs font-medium mb-1">Cost Today</p>
+                 <p className="text-xl font-bold text-zinc-200">{formatCompact(result.goalComparison.costToday)}</p>
              </div>
-             <div className="text-zinc-600 text-2xl">→</div>
+             <div className="text-zinc-500 text-2xl">→</div>
              <div className="text-right">
-                 <p className="text-zinc-400 text-xs font-medium mb-1">Cost in {result.years} Years</p>
-                 <p className="text-3xl font-black text-purple-400 drop-shadow-lg">{formatCompact(result.goalComparison.costFuture)}</p>
+                 <p className="text-zinc-300 text-xs font-medium mb-1">Cost in {result.years} Years</p>
+                 <p className="text-3xl font-black text-purple-400 drop-shadow-lg">
+                    <AnimatedCounter value={displayGoalFuture} formatFn={formatCompact} />
+                 </p>
              </div>
          </div>
          
          <div className="bg-purple-900/20 rounded-lg p-3 border border-purple-500/20 text-center relative z-10">
-             <p className="text-purple-300 text-sm font-medium">
-                 You need an extra <span className="font-bold text-white">{formatCompact(goalGap)}</span> just to cover inflation!
+             <p className="text-purple-200 text-sm font-medium">
+                 You need an extra <span className="font-bold text-white"><AnimatedCounter value={goalGap} formatFn={formatCompact} /></span> just to cover inflation!
              </p>
          </div>
       </div>
@@ -166,18 +241,21 @@ const FutureResultView: React.FC<FutureResultViewProps> = ({ result, chartData, 
              💰
           </div>
 
-          <h3 className="text-blue-400 text-xs font-bold uppercase tracking-widest mb-6 flex items-center gap-2 drop-shadow-[0_0_8px_rgba(96,165,250,0.3)] relative z-10">
-             Lazy vs Smart Wealth <InfoTooltip text="Projected wealth if you save 20% of your income monthly."/>
+          <h3 className="text-blue-400 text-xs font-bold uppercase tracking-widest mb-1 flex items-center gap-2 drop-shadow-[0_0_8px_rgba(96,165,250,0.3)] relative z-10">
+             Lazy vs Smart Wealth 
           </h3>
+          <p className={subLabelClass + " mb-6 relative z-10"}>Projected wealth if you save 20% of monthly income</p>
           
           <div className="grid grid-cols-2 gap-6 relative z-10">
               <div className="bg-zinc-900/80 backdrop-blur-sm p-5 rounded-2xl border border-white/5">
                   <div className="flex items-center gap-2 mb-2">
                       <span className="text-xl">🐢</span>
-                      <span className="text-zinc-300 text-sm font-bold">Lazy (FD/Bank)</span>
+                      <span className="text-zinc-200 text-sm font-bold">Lazy (FD/Bank)</span>
                   </div>
-                  <p className="text-2xl font-bold text-zinc-300">{formatCompact(result.wealthLazy)}</p>
-                  <p className="text-[10px] text-zinc-500 mt-1">@ 6% Return</p>
+                  <p className="text-2xl font-bold text-zinc-200">
+                     <AnimatedCounter value={result.wealthLazy} formatFn={formatCompact} />
+                  </p>
+                  <p className="text-[14px] text-zinc-400 mt-1">@ 6% Return</p>
               </div>
               
               <div className="bg-blue-900/10 backdrop-blur-sm p-5 rounded-2xl border border-blue-500/30">
@@ -185,34 +263,63 @@ const FutureResultView: React.FC<FutureResultViewProps> = ({ result, chartData, 
                       <span className="text-xl">🚀</span>
                       <span className="text-white text-sm font-bold">Smart (SIP/Nifty)</span>
                   </div>
-                  <p className="text-2xl font-bold text-blue-400 drop-shadow-md">{formatCompact(result.wealthSmart)}</p>
-                  <p className="text-[10px] text-blue-300/70 mt-1">@ 12% Return</p>
+                  <p className="text-2xl font-bold text-blue-400 drop-shadow-md">
+                    <AnimatedCounter value={result.wealthSmart} formatFn={formatCompact} />
+                  </p>
+                  <p className="text-[14px] text-blue-300/70 mt-1">@ 12% Return</p>
               </div>
           </div>
           
           <div className="mt-4 text-center relative z-10">
-              <p className="text-zinc-400 text-xs">
-                  Difference: <span className="text-white font-bold glow-sm">{formatCompact(result.wealthSmart - result.wealthLazy)}</span> gained by being smart!
+              <p className="text-zinc-300 text-xs">
+                  Difference: <span className="text-white font-bold glow-sm"><AnimatedCounter value={result.wealthSmart - result.wealthLazy} formatFn={formatCompact} /></span> gained by being smart!
               </p>
           </div>
       </div>
   );
 
-  const TaxAndLivingCard = (
+  const TaxAndLivingCard = () => {
+    const scrollRef = useRef<HTMLDivElement>(null);
+    const [isPaused, setIsPaused] = useState(false);
+
+    useEffect(() => {
+        const container = scrollRef.current;
+        if (!container) return;
+        let animationId: number;
+        const scroll = () => {
+        if (!isPaused) {
+            if (container.scrollLeft + container.clientWidth >= container.scrollWidth) {
+                container.scrollLeft = 0;
+            } else {
+                container.scrollLeft += 0.5;
+            }
+        }
+        animationId = requestAnimationFrame(scroll);
+        };
+        animationId = requestAnimationFrame(scroll);
+        return () => cancelAnimationFrame(animationId);
+    }, [isPaused]);
+
+    // Duplicate for smooth loop
+    const displayItems = [...result.futureItemPrices, ...result.futureItemPrices, ...result.futureItemPrices];
+
+    return (
       <div className="flex flex-col gap-6 w-full">
         {/* Taxman */}
         <div className="bg-[#151516] border border-red-500/20 rounded-3xl p-8 relative overflow-hidden group">
              {/* Backdrop Emoji - Left */}
-             <div className="absolute -left-6 -bottom-6 text-[8rem] opacity-10 grayscale pointer-events-none select-none group-hover:rotate-12 transition-transform duration-700">
+             <div className="absolute -left-6 -bottom-6 text-[10rem] opacity-10 grayscale pointer-events-none select-none group-hover:rotate-12 transition-transform duration-700">
                 💸
              </div>
 
              <h3 className="text-red-400 text-xs font-bold uppercase tracking-widest mb-4 drop-shadow-[0_0_8px_rgba(248,113,113,0.3)] relative z-10">The Taxman Warning</h3>
              <div className="flex flex-col sm:flex-row items-end gap-4 justify-between relative z-10">
                  <div className="w-full">
-                     <p className="text-zinc-400 text-sm mb-1 font-medium drop-shadow-sm">Projected Monthly Tax in {futureYear}</p>
-                     <p className="text-3xl font-black text-white drop-shadow-lg">{formatCurrency(result.futureTax)}</p>
-                     <p className="text-xs text-zinc-500 mt-2 leading-relaxed">
+                     <p className="text-zinc-300 text-sm mb-1 font-medium drop-shadow-sm">Projected Monthly Tax in {futureYear}</p>
+                     <p className="text-3xl font-black text-white drop-shadow-lg">
+                        <AnimatedCounter value={result.futureTax} formatFn={formatCurrency} />
+                     </p>
+                     <p className="text-xs text-zinc-400 mt-2 leading-relaxed">
                          Your income grows, but so does your tax bracket.
                      </p>
                  </div>
@@ -227,27 +334,39 @@ const FutureResultView: React.FC<FutureResultViewProps> = ({ result, chartData, 
              </div>
              
              <h3 className={labelClass + " mb-4 relative z-10"}>Future Price Check</h3>
-             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 relative z-10">
-                 {result.futureItemPrices.map((item, idx) => (
-                     <div key={idx} className="bg-zinc-900/50 rounded-xl p-3 text-center border border-white/5 backdrop-blur-sm hover:bg-zinc-800/50 transition-colors">
-                         <div className="text-2xl mb-1">{item.emoji}</div>
-                         <div className="text-xs text-zinc-400 mb-1 font-medium">{item.name}</div>
-                         <div className="text-sm font-bold text-white drop-shadow-sm">₹{item.price}</div>
-                     </div>
-                 ))}
+             
+             <div 
+                ref={scrollRef}
+                className="flex overflow-x-auto pb-4 scrollbar-hide w-full cursor-grab active:cursor-grabbing relative z-10"
+                onMouseEnter={() => setIsPaused(true)}
+                onMouseLeave={() => setIsPaused(false)}
+                onTouchStart={() => setIsPaused(true)}
+                onTouchEnd={() => setIsPaused(false)}
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+             >
+                <div className="flex gap-4 w-max">
+                    {displayItems.map((item, idx) => (
+                        <div key={`${item.name}-${idx}`} className="bg-zinc-900/50 rounded-xl p-3 min-w-[120px] text-center border border-white/5 backdrop-blur-sm hover:bg-zinc-800/50 transition-colors shrink-0">
+                            <div className="text-2xl mb-1">{item.emoji}</div>
+                            <div className="text-xs text-zinc-400 mb-1 font-medium whitespace-nowrap">{item.name}</div>
+                            <div className="text-sm font-bold text-white drop-shadow-sm">₹{shockMode ? Math.round(item.price * Math.pow(1.12/1.06, result.years)) : item.price}</div>
+                        </div>
+                    ))}
+                </div>
              </div>
         </div>
       </div>
-  );
+    );
+  };
 
   const ChartCard = (
-      <div className="bg-[#151516] border border-white/10 rounded-3xl p-8 h-[400px] w-full">
-        <h4 className="text-zinc-300 text-base font-medium mb-6 drop-shadow-[0_0_10px_rgba(255,255,255,0.1)]">
-          Gap: Paycheck vs Purchasing Power
+      <div className={`bg-[#151516] border rounded-3xl p-8 h-[400px] w-full transition-all duration-500 ${shockMode ? 'border-red-900/30' : 'border-white/10'}`}>
+        <h4 className="text-zinc-200 text-base font-medium mb-6 drop-shadow-[0_0_10px_rgba(255,255,255,0.1)]">
+          Gap: Paycheck vs Purchasing Power {shockMode && <span className="text-red-500 font-bold ml-2">(SHOCK MODE)</span>}
         </h4>
         <div className="w-full h-[300px]">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={chartData}>
+            <AreaChart data={displayChartData}>
               <defs>
                 <linearGradient id="colorNominal" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1}/>
@@ -300,25 +419,35 @@ const FutureResultView: React.FC<FutureResultViewProps> = ({ result, chartData, 
 
   return (
     <>
+        {showShockGuide && (
+            <GuidePopup
+                title="Ready for a scare? 👻"
+                message={<span>Click the <strong className="text-red-500">Test Shock</strong> button to see what happens if inflation hits <strong className="text-white">12%</strong>!</span>}
+                onDismiss={() => setShowShockGuide(false)}
+            />
+        )}
+
         {/* --- TABLET/DESKTOP VIEW --- */}
         <div className="hidden md:block space-y-8">
             {MainProjectionCard}
+            <IllusionCard />
             {DreamGoalCard}
             {WealthCard}
-            {TaxAndLivingCard}
+            <TaxAndLivingCard />
             {ChartCard}
-            <AIAnalysis state={aiState} analysisText={aiText} onGenerate={onGenerateAI} />
+            <AboutCard />
         </div>
 
         {/* --- MOBILE VIEW (Stories) --- */}
         <div className="block md:hidden h-[680px]">
             <MobileStoryContainer>
                 {MainProjectionCard}
+                <IllusionCard />
                 {DreamGoalCard}
                 {WealthCard}
-                {TaxAndLivingCard}
+                <TaxAndLivingCard />
                 {ChartCard}
-                <AIAnalysis state={aiState} analysisText={aiText} onGenerate={onGenerateAI} />
+                <AboutCard />
             </MobileStoryContainer>
         </div>
     </>

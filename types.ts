@@ -28,6 +28,15 @@ export interface AssetBenchmark {
     prices: { [year: number]: number };
 }
 
+export interface InvestmentAsset {
+    id: string;
+    name: string;
+    ticker: string;
+    type: 'CRYPTO' | 'STOCK' | 'INDEX' | 'REAL_ESTATE';
+    prices: { [year: number]: number }; // Price per unit/share/index
+    color: string;
+}
+
 export interface EconomicEvent {
   year: number;
   label: string;
@@ -61,15 +70,22 @@ export interface CalculationResult {
   goldPriceThen: number;
   goldPriceNow: number;
   isGoldPriceLive: boolean; // UI indicator
+  
+  // Silver & Copper
+  silverAdjustedAmount: number;
+  copperAdjustedAmount: number;
 
   // Feature 1: Missed Fortune (SIP)
   sipMissedFortune: number;
+  mutualFundReturns: { name: string, value: number, cagr: number, emoji: string }[];
   
   // Feature 2: Tax Reality
   netIncomeOriginal: number;
   netIncomeNow: number;
   taxOriginal: number;
   taxNow: number;
+  effectiveTaxRateNow: number;
+  daysWorkedForTax: number;
 
   // Feature 4: Real Estate
   sqftAffordabilityOriginal: number;
@@ -79,6 +95,8 @@ export interface CalculationResult {
   // Context
   cityTier: CityTierMove;
   selectedDomain: InflationDomain;
+  selectedIndustry: string;
+  industryGrowthDiff: number; // User Growth - Industry Avg
 }
 
 export interface FuturePredictionResult {
@@ -99,6 +117,9 @@ export interface FuturePredictionResult {
       costToday: number;
       costFuture: number;
   };
+  fireCorpus: number; // Financial Independence Number
+  yearsToFreedom: number;
+  totalInterestPaid: number; // If they took a loan
 }
 
 export interface ChartDataPoint {
@@ -125,6 +146,7 @@ export enum AIAnalysisState {
 export enum AppMode {
   HISTORY = 'HISTORY',
   FUTURE = 'FUTURE',
+  PERSONAL = 'PERSONAL',
 }
 
 // New Enums
@@ -132,11 +154,4 @@ export enum CityTierMove {
   SAME_TIER = 'Same Tier',
   TIER_2_TO_1 = 'Tier 2 → Tier 1',
   TIER_1_TO_2 = 'Tier 1 → Tier 2',
-}
-
-// Deprecated in favor of Domains, but kept for type safety if needed temporarily
-export enum ExpenseCategory {
-  EDUCATION = 'Education',
-  HEALTHCARE = 'Healthcare',
-  NONE = 'General',
 }
