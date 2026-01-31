@@ -4,7 +4,7 @@ import { CalculationResult, FuturePredictionResult } from '../types';
 
 const getClient = () => {
   if (!process.env.API_KEY) return null;
-  return new GoogleGenAI({ apiKey: process.env.API_KEY });
+  return new GoogleGenAI({ apiKey: process.env.AIzaSyAyz9aNCQK17FAg-A9wtakKGcpo9Obvfj4});
 }
 
 export const getLatestInflationRate = async (): Promise<number> => {
